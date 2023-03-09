@@ -1,0 +1,16 @@
+[package]
+name = "nanocore-network-inspector"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+binary-reader = "0.4.5"
+cbc = "0.1.2"
+des = "0.8.1"
+flate2 = "1.0.25"
+lazy_static = "1.4.0"
+pnet = "0.33.0"
+structopt = "0.3.26"
+uuid = "1.3.0"
