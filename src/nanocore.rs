@@ -138,16 +138,22 @@ impl NanoCoreState {
     }
   }
 
-  pub fn process_packet(&mut self, packet: &[u8], side: Side) {
+  pub fn id(&self) -> u32 {
+    self.id
+  }
+
+  pub fn process_packet(&mut self, packet: &[u8], side: Side) -> Result<(), ()> {
     let host = if matches!(side, Side::Client) {
       &mut self.hosts[0]
     } else {
       &mut self.hosts[1]
     };
 
-    for packet in host.process_packet(packet, 0) {
+    for packet in host.process_packet(packet, 0)? {
       self.handle_packet(packet, side);
     }
+
+    Ok(())
   }
 
   fn handle_packet(&mut self, packet: Packet, side: Side) {
@@ -261,6 +267,8 @@ impl NanoCoreState {
   }
 }
 
+const MAX_PACKET_SIZE: i32 = 0;
+
 pub struct NanoNetworkState {
   length_acquired: bool,
   length_bytes_read: usize,
@@ -287,11 +295,11 @@ impl NanoNetworkState {
     }
   }
 
-  pub fn process_packet(&mut self, packet: &[u8], mut offset: usize) -> Vec<Packet> {
+  pub fn process_packet(&mut self, packet: &[u8], mut offset: usize) -> Result<Vec<Packet>, ()> {
     let mut packets = vec![];
 
     if self.is_invalid {
-      return packets;
+      return Ok(packets);
     }
 
     if !self.length_acquired {
@@ -304,16 +312,16 @@ impl NanoNetworkState {
       // Check if we have finished reading the entire length buffer
       self.length_bytes_read += count;
       if self.length_bytes_read != 4 {
-        return packets;
+        return Ok(packets);
       }
 
       // We know how big the packet is going to be
       let packet_size = i32::from_le_bytes(self.length_buffer);
 
-      if packet_size < 0 {
-        // This is not a NanoCore connection
-        // self.is_invalid = true;
-        return packets;
+      if packet_size < 0 || packet_size > MAX_PACKET_SIZE {
+        // This is most certainly not a NanoCore connection
+        self.is_invalid = true;
+        return Err(());
       }
 
       self.bytes_read = 0;
@@ -323,11 +331,11 @@ impl NanoNetworkState {
 
       // Check if we have finished reading the entire packet
       if offset >= packet.len() {
-        return packets;
+        return Ok(packets);
       }
 
       // Continue processing the packet now that we know the length
-      packets.extend(self.process_packet(packet, offset));
+      packets.extend(self.process_packet(packet, offset)?);
     } else {
       // Read (a part of) the entire packet
       let count = min(self.buffer.len() - self.bytes_read, packet.len() - offset);
@@ -348,13 +356,13 @@ impl NanoNetworkState {
 
       // Check if we have finished reading the entire packet
       if count >= packet.len() - offset {
-        return packets;
+        return Ok(packets);
       }
 
       // Continue processing the packet
-      packets.extend(self.process_packet(packet, offset + count));
+      packets.extend(self.process_packet(packet, offset + count)?);
     }
 
-    packets
+    Ok(packets)
   }
 }

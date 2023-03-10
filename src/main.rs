@@ -203,13 +203,40 @@ impl TcpStateManager {
         Direction::S2C => {
           let Some(payload) = state.server_packets.remove(&state.server_seq) else { break };
 
-          state.nano_state.process_packet(&payload, Side::Server);
+          if state
+            .nano_state
+            .process_packet(&payload, Side::Server)
+            .is_err()
+          {
+            let id = state.nano_state.id();
+            drop(state);
+
+            self
+              .states
+              .retain(|vec_state| vec_state.nano_state.id() != id);
+
+            break;
+          }
+
           state.server_seq += payload.len() as u32;
         }
         Direction::C2S => {
           let Some(payload) = state.client_packets.remove(&state.client_seq) else { break };
 
-          state.nano_state.process_packet(&payload, Side::Client);
+          if state
+            .nano_state
+            .process_packet(&payload, Side::Client)
+            .is_err()
+          {
+            let id = state.nano_state.id();
+            drop(state);
+
+            self
+              .states
+              .retain(|vec_state| vec_state.nano_state.id() != id);
+
+            break;
+          }
           state.client_seq += payload.len() as u32;
         }
       };
