@@ -8,22 +8,24 @@ pub fn handle_packet(id: u32, packet: Packet, side: Side) {
     return;
   }
 
-  match packet.payload[1] {
+  let Some(Byte(command)) = packet.payload.get(1) else {return};
+
+  match *command {
     // Invalidate
-    Byte(0) => {}
+    0 => {}
 
     // Update
-    Byte(1) => {}
+    1 => {}
 
     // Connection Added
-    Byte(2) => {}
+    2 => {}
 
     // Connection Removed
-    Byte(3) => {}
+    3 => {}
 
     // Terminate Connection
-    Byte(4) => {
-      println!("#{id} Server [Management Plugin]> Terminate a connection");
+    4 => {
+      println!("#{id} [Management Plugin]> Terminate a connection");
     }
 
     _ => {}

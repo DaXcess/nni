@@ -6,56 +6,61 @@ use crate::{
 pub const PLUGIN_GUID: u128 = 282162044448697171732495211913591752041;
 
 pub fn handle_packet(state: &mut NanoState, packet: Packet, side: Side) {
-  match packet.payload[0] {
-    Byte(0) => match packet.payload[1] {
-      Byte(0) => {
-        if side.is_server() {
-          return;
+  let Some(Byte(command)) = packet.payload.get(0) else {return};
+
+  match *command {
+    0 => {
+      let Some(Byte(subcommand)) = packet.payload.get(1) else {return};
+      match *subcommand {
+        0 => {
+          if side.is_server() {
+            return;
+          }
+
+          let Some(String(os_name)) = packet.payload.get(3) else {return};
+          let Some(String(filename)) = packet.payload.get(7) else {return};
+
+          println!(
+            "#{} [Core Plugin]> Hello server, OS: {os_name}, Filename: {filename}",
+            state.id()
+          )
         }
-
-        let os_name = packet.payload[3].as_ref_string().unwrap();
-        let filename = packet.payload[7].as_ref_string().unwrap();
-
-        println!(
-          "#{} Client [Core Plugin]> Hello server, OS: {os_name}, Filename: {filename}",
-          state.id()
-        )
+        _ => {}
       }
-      _ => {}
-    },
-    Byte(1) => {
+    }
+    1 => {
       if side.is_client() {
         return;
       }
 
       match packet.payload[1] {
         Byte(0) => {
-          println!("#{} Server [Core Plugin]> Restart connection", state.id());
+          println!("#{} [Core Plugin]> Restart connection", state.id());
         }
 
         Byte(1) => {
-          println!("#{} Server [Core Plugin]> Shutdown connection", state.id());
+          println!("#{} [Core Plugin]> Shutdown connection", state.id());
         }
 
         Byte(2) => {
-          println!("#{} Server [Core Plugin]> Uninstall client", state.id());
+          println!("#{} [Core Plugin]> Uninstall client", state.id());
         }
 
         _ => {}
       }
     }
-    Byte(2) => {
+    2 => {
       if side.is_client() {
         return;
       }
 
       match packet.payload[1] {
         Byte(0) => {
-          println!("#{} Server [Core Plugin]> Restart system", state.id());
+          println!("#{} [Core Plugin]> Restart system", state.id());
         }
 
         Byte(1) => {
-          println!("#{} Server [Core Plugin]> Shutdown system", state.id());
+          println!("#{} [Core Plugin]> Shutdown system", state.id());
         }
 
         _ => {}

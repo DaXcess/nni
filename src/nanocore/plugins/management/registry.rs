@@ -8,13 +8,15 @@ pub fn handle_packet(id: u32, packet: Packet, side: Side) {
     return;
   }
 
-  match packet.payload[1] {
-    // Get keys
-    Byte(0) => {
-      let Int(hive) = packet.payload[2] else {return};
-      let String(ref subkey) = packet.payload[3] else {return};
+  let Some(Byte(command)) = packet.payload.get(1) else {return};
 
-      let hive = get_hive(hive);
+  match *command {
+    // Get keys
+    0 => {
+      let Some(Int(hive)) = packet.payload.get(2) else {return};
+      let Some(String(subkey)) = packet.payload.get(3) else {return};
+
+      let hive = get_hive(*hive);
       let subkey = if let Some(idx) = subkey.find('\\') {
         &subkey[idx + 1..]
       } else {
@@ -22,18 +24,18 @@ pub fn handle_packet(id: u32, packet: Packet, side: Side) {
       };
 
       println!(
-        "#{id} Server [Management Plugin]> Get subkeys: {hive}{}{subkey}",
+        "#{id} [Management Plugin]> Get subkeys: {hive}{}{subkey}",
         if subkey.is_empty() { "" } else { "\\" }
       );
     }
 
     // Create key
-    Byte(1) => {
-      let Int(hive) = packet.payload[2] else {return};
-      let String(ref subkey) = packet.payload[3] else {return};
-      let String(ref key) = packet.payload[4] else {return};
+    1 => {
+      let Some(Int(hive)) = packet.payload.get(2) else {return};
+      let Some(String(subkey)) = packet.payload.get(3) else {return};
+      let Some(String(key)) = packet.payload.get(4) else {return};
 
-      let hive = get_hive(hive);
+      let hive = get_hive(*hive);
       let subkey = if let Some(idx) = subkey.find('\\') {
         &subkey[idx + 1..]
       } else {
@@ -41,19 +43,19 @@ pub fn handle_packet(id: u32, packet: Packet, side: Side) {
       };
 
       println!(
-        "#{id} Server [Management Plugin]> Create new key in {hive}{}{subkey}: {key}",
+        "#{id} [Management Plugin]> Create new key in {hive}{}{subkey}: {key}",
         if subkey.is_empty() { "" } else { "\\" }
       );
     }
 
     // Rename key
-    Byte(2) => {
-      let Int(hive) = packet.payload[2] else {return};
-      let String(ref subkey) = packet.payload[3] else {return};
-      let String(ref oldkey) = packet.payload[4] else {return};
-      let String(ref newkey) = packet.payload[4] else {return};
+    2 => {
+      let Some(Int(hive)) = packet.payload.get(2) else {return};
+      let Some(String(subkey)) = packet.payload.get(3) else {return};
+      let Some(String(oldkey)) = packet.payload.get(4) else {return};
+      let Some(String(newkey)) = packet.payload.get(5) else {return};
 
-      let hive = get_hive(hive);
+      let hive = get_hive(*hive);
       let subkey = if let Some(idx) = subkey.find('\\') {
         &subkey[idx + 1..]
       } else {
@@ -61,17 +63,17 @@ pub fn handle_packet(id: u32, packet: Packet, side: Side) {
       };
 
       println!(
-        "#{id} Server [Management Plugin]> Rename key in {hive}{}{subkey}: {oldkey} -> {newkey}",
+        "#{id} [Management Plugin]> Rename key in {hive}{}{subkey}: {oldkey} -> {newkey}",
         if subkey.is_empty() { "" } else { "\\" }
       );
     }
 
     // Delete key
-    Byte(3) => {
-      let Int(hive) = packet.payload[2] else {return};
-      let String(ref subkey) = packet.payload[3] else {return};
+    3 => {
+      let Some(Int(hive)) = packet.payload.get(2) else {return};
+      let Some(String(subkey)) = packet.payload.get(3) else {return};
 
-      let hive = get_hive(hive);
+      let hive = get_hive(*hive);
       let subkey = if let Some(idx) = subkey.find('\\') {
         &subkey[idx + 1..]
       } else {
@@ -79,17 +81,17 @@ pub fn handle_packet(id: u32, packet: Packet, side: Side) {
       };
 
       println!(
-        "#{id} Server [Management Plugin]> Delete key: {hive}{}{subkey}",
+        "#{id} [Management Plugin]> Delete key: {hive}{}{subkey}",
         if subkey.is_empty() { "" } else { "\\" }
       );
     }
 
     // Get values
-    Byte(4) => {
-      let Int(hive) = packet.payload[2] else {return};
-      let String(ref subkey) = packet.payload[3] else {return};
+    4 => {
+      let Some(Int(hive)) = packet.payload.get(2) else {return};
+      let Some(String(subkey)) = packet.payload.get(3) else {return};
 
-      let hive = get_hive(hive);
+      let hive = get_hive(*hive);
       let subkey = if let Some(idx) = subkey.find('\\') {
         &subkey[idx + 1..]
       } else {
@@ -97,19 +99,19 @@ pub fn handle_packet(id: u32, packet: Packet, side: Side) {
       };
 
       println!(
-        "#{id} Server [Management Plugin]> Get values: {hive}{}{subkey}",
+        "#{id} [Management Plugin]> Get values: {hive}{}{subkey}",
         if subkey.is_empty() { "" } else { "\\" }
       );
     }
 
     // Create or change value
-    Byte(5) => {
-      let Int(hive) = packet.payload[2] else {return};
-      let String(ref subkey) = packet.payload[3] else {return};
-      let String(ref name) = packet.payload[4] else {return};
-      let String(ref value) = packet.payload[5] else {return};
+    5 => {
+      let Some(Int(hive)) = packet.payload.get(2) else {return};
+      let Some(String(subkey)) = packet.payload.get(3) else {return};
+      let Some(String(name)) = packet.payload.get(4) else {return};
+      let Some(String(value)) = packet.payload.get(5) else {return};
 
-      let hive = get_hive(hive);
+      let hive = get_hive(*hive);
       let subkey = if let Some(idx) = subkey.find('\\') {
         &subkey[idx + 1..]
       } else {
@@ -117,19 +119,19 @@ pub fn handle_packet(id: u32, packet: Packet, side: Side) {
       };
 
       println!(
-        "#{id} Server [Management Plugin]> Update value in {hive}{}{subkey}: {name} = {value:?}",
+        "#{id} [Management Plugin]> Update value in {hive}{}{subkey}: {name} = {value:?}",
         if subkey.is_empty() { "" } else { "\\" }
       );
     }
 
     // Rename value
-    Byte(6) => {
-      let Int(hive) = packet.payload[2] else {return};
-      let String(ref subkey) = packet.payload[3] else {return};
-      let String(ref oldname) = packet.payload[4] else {return};
-      let String(ref newname) = packet.payload[4] else {return};
+    6 => {
+      let Some(Int(hive)) = packet.payload.get(2) else {return};
+      let Some(String(subkey)) = packet.payload.get(3) else {return};
+      let Some(String(oldname)) = packet.payload.get(4) else {return};
+      let Some(String(newname)) = packet.payload.get(5) else {return};
 
-      let hive = get_hive(hive);
+      let hive = get_hive(*hive);
       let subkey = if let Some(idx) = subkey.find('\\') {
         &subkey[idx + 1..]
       } else {
@@ -137,18 +139,18 @@ pub fn handle_packet(id: u32, packet: Packet, side: Side) {
       };
 
       println!(
-        "#{id} Server [Management Plugin]> Rename value in {hive}{}{subkey}: {oldname} -> {newname}",
+        "#{id} [Management Plugin]> Rename value in {hive}{}{subkey}: {oldname} -> {newname}",
         if subkey.is_empty() { "" } else { "\\" }
       );
     }
 
     // Delete value
-    Byte(7) => {
-      let Int(hive) = packet.payload[2] else {return};
-      let String(ref subkey) = packet.payload[3] else {return};
-      let String(ref name) = packet.payload[4] else {return};
+    7 => {
+      let Some(Int(hive)) = packet.payload.get(2) else {return};
+      let Some(String(subkey)) = packet.payload.get(3) else {return};
+      let Some(String(name)) = packet.payload.get(4) else {return};
 
-      let hive = get_hive(hive);
+      let hive = get_hive(*hive);
       let subkey = if let Some(idx) = subkey.find('\\') {
         &subkey[idx + 1..]
       } else {
@@ -156,7 +158,7 @@ pub fn handle_packet(id: u32, packet: Packet, side: Side) {
       };
 
       println!(
-        "#{id} Server [Management Plugin]> Delete value in {hive}{}{subkey}: {name}",
+        "#{id} [Management Plugin]> Delete value in {hive}{}{subkey}: {name}",
         if subkey.is_empty() { "" } else { "\\" }
       );
     }

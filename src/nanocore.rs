@@ -1,6 +1,9 @@
 pub mod plugins;
 
-use crate::decrypt::{decrypt_des_cbc, Packet, Payload};
+use crate::decrypt::{
+  decrypt_des_cbc, Packet,
+  Payload::{self, Guid},
+};
 use std::{cmp::min, collections::HashMap, fmt::Display, rc::Rc, sync::Mutex};
 use uuid::Uuid;
 
@@ -34,7 +37,7 @@ impl Side {
   }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Debug)]
 struct PipeIdentifier {
   server_ip: String,
   server_port: u16,
@@ -79,8 +82,10 @@ pub struct NanoCoreState {
   state: NanoState,
 }
 
+#[derive(Debug)]
 pub struct NanoState {
   id: u32,
+  pipe: Option<PipeIdentifier>,
   map: HashMap<String, String>,
 }
 
@@ -88,12 +93,17 @@ impl NanoState {
   pub fn new(id: u32) -> Self {
     Self {
       id,
+      pipe: None,
       map: HashMap::new(),
     }
   }
 
   pub fn id(&self) -> u32 {
     self.id
+  }
+
+  pub fn pipe_name(&self) -> Option<String> {
+    self.pipe.as_ref().map(|pipe| pipe.pipe_name.clone())
   }
 
   pub fn get_value(&self, key: &str) -> Option<String> {
@@ -149,36 +159,45 @@ impl NanoCoreState {
           }
 
           println!(
-            "#{} Client -> Hello server, Name: {}, Group: {}, Version: {}",
-            self.id, packet.payload[1], packet.payload[2], packet.payload[3]
+            "#{} Client -> Hello server, Name: {}, Group: {}, Version: {}, Remote: {}:{}",
+            self.id,
+            packet.payload[1],
+            packet.payload[2],
+            packet.payload[3],
+            self.server_ip,
+            self.server_port
           )
         }
         2 => {
-          if side.is_server() {
-            self.pipe_tracker.add(
-              PipeIdentifier {
-                server_ip: self.server_ip.clone(),
-                server_port: self.server_port,
-                pipe_id: packet.payload[1].as_ref_uuid().unwrap().clone(),
-                pipe_name: packet.payload[0].as_ref_string().unwrap().clone(),
-              },
-              self.id,
-            )
-            // Need to make sure that once a new client connects it knows it is this client
-          }
+          let Some(Payload::String(pipe_name)) = packet.payload.get(0).cloned() else {return};
+          let Some(Guid(pipe_id)) = packet.payload.get(1).cloned() else {return};
+
+          let identifier = PipeIdentifier {
+            server_ip: self.server_ip.clone(),
+            server_port: self.server_port,
+            pipe_id,
+            pipe_name: pipe_name.clone(),
+          };
 
           if side.is_client() {
-            if let Some(id) = self.pipe_tracker.get(&PipeIdentifier {
-              server_ip: self.server_ip.clone(),
-              server_port: self.server_port,
-              pipe_id: packet.payload[1].as_ref_uuid().unwrap().clone(),
-              pipe_name: packet.payload[0].as_ref_string().unwrap().clone(),
-            }) {
+            if let Some(id) = self.pipe_tracker.get(&identifier) {
               self.id = id;
+              self.state.id = id;
+              self.state.pipe = Some(identifier);
             }
+
+            self
+              .plugin_manager
+              .handle_pipe_created(&mut self.state, &pipe_name, &pipe_id);
+          } else {
+            // Need to make sure that once a new client connects it knows it is this client
+            self.pipe_tracker.add(identifier, self.id);
           }
 
-          println!("#{} {} -> Create pipe", self.id, side.to_string());
+          // println!(
+          //   "#{} {side} -> Create pipe: {} ({})",
+          //   self.id, pipe_name, pipe_id
+          // );
         }
         // Plugin command
         4 => {
@@ -235,6 +254,10 @@ impl NanoCoreState {
       },
       _ => {}
     }
+  }
+
+  pub fn connection_closed(&self) {
+    self.plugin_manager.connection_closed(&self.state);
   }
 }
 

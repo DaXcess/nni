@@ -8,37 +8,41 @@ pub fn handle_packet(id: u32, packet: Packet, side: Side) {
     return;
   }
 
-  match packet.payload[1] {
+  let Some(Byte(command)) = packet.payload.get(1) else {return};
+
+  match *command {
     // Common Paths
-    Byte(0) => {}
+    0 => {}
 
     // File System Entries
-    Byte(1) => {
-      let String(ref path) = packet.payload[2] else {return};
+    1 => {
+      let Some(String(path)) = packet.payload.get(2) else {return};
 
-      println!("#{id} Server [Management Plugin]> Read directory: {path}");
+      println!("#{id} [Management Plugin]> Read directory: {path}");
     }
 
     // Execute
-    Byte(2) => {
-      let String(ref path) = packet.payload[2] else {return};
+    2 => {
+      let Some(String(path)) = packet.payload.get(2) else {return};
+      let Some(subsection) = packet.payload.get(3..) else {return};
 
       // Array of [is_folder, name]
-      for chunk in packet.payload[3..].chunks(2) {
+      for chunk in subsection.chunks(2) {
         if let [Boolean(_), String(name)] = chunk {
-          println!("#{id} Server [Management Plugin]> Execute: {path}\\{name}");
+          println!("#{id} [Management Plugin]> Execute: {path}\\{name}");
         }
       }
     }
 
     // Delete
-    Byte(3) => {
-      let String(ref path) = packet.payload[2] else {return};
+    3 => {
+      let Some(String(path)) = packet.payload.get(2) else {return};
+      let Some(subsection) = packet.payload.get(3..) else {return};
 
-      for chunk in packet.payload[3..].chunks(2) {
+      for chunk in subsection.chunks(2) {
         if let [Boolean(directory), String(name)] = chunk {
           println!(
-            "#{id} Server [Management Plugin]> Deleted {} {path}\\{name}",
+            "#{id} [Management Plugin]> Deleted {} {path}\\{name}",
             if *directory { "directory" } else { "file" }
           )
         }
@@ -46,27 +50,27 @@ pub fn handle_packet(id: u32, packet: Packet, side: Side) {
     }
 
     // File Folder Transfer
-    Byte(4) => {
-      let String(ref path) = packet.payload[2] else {return};
+    4 => {
+      let Some(String(path)) = packet.payload.get(2) else {return};
 
-      println!("#{id} Server [Management Plugin]> Downloading directory: {path}");
+      println!("#{id} [Management Plugin]> Downloading directory: {path}");
     }
 
     // Initialize Transfer
-    Byte(5) => {}
+    5 => {}
 
     // Write Block Data
-    Byte(6) => {
-      let String(ref path) = packet.payload[2] else {return};
+    6 => {
+      let Some(String(path)) = packet.payload.get(2) else {return};
 
-      println!("#{id} Server [Management Plugin]> Write data to file: {path}");
+      println!("#{id} [Management Plugin]> Write data to file: {path}");
     }
 
     // Read Block Data
-    Byte(7) => {
-      let String(ref path) = packet.payload[2] else {return};
+    7 => {
+      let Some(String(path)) = packet.payload.get(2) else {return};
 
-      println!("#{id} Server [Management Plugin]> Read data from file: {path}");
+      println!("#{id} [Management Plugin]> Read data from file: {path}");
     }
 
     _ => {}

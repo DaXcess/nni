@@ -87,10 +87,12 @@ impl TcpStateManager {
             && state.server_port == tcp.get_destination());
 
         if result {
-          println!(
-            "Connection closed: {}:{} -> {}:{}",
-            state.client_ip, state.client_port, state.server_ip, state.server_port
-          );
+          // println!(
+          //   "Connection closed: {}:{} -> {}:{}",
+          //   state.client_ip, state.client_port, state.server_ip, state.server_port
+          // );
+
+          state.nano_state.connection_closed();
         }
 
         !result
