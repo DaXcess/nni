@@ -7,7 +7,6 @@ use uuid::Uuid;
 
 type DesCbcDec = cbc::Decryptor<des::Des>;
 
-#[derive(Debug)]
 pub struct Packet {
   pub command_id: u8,
   pub subcommand_id: u8,
@@ -15,27 +14,29 @@ pub struct Packet {
   pub payload: Vec<Payload>,
 }
 
-#[derive(Debug, Clone)]
-#[repr(u8)]
+/// Wrapper for custom packet payloads
+/// Misses a few redundant types like `Version` and `Rectangle` as they are not used by NanoCore
+///  and it's plugins
+#[derive(Clone)]
 pub enum Payload {
-  Boolean(bool) = 0,
-  Byte(u8) = 1,
-  ByteArray(Vec<u8>) = 2,
-  Char(char) = 3,
-  CharArray(Vec<char>) = 4,
-  Double(f64) = 6,
-  Int(i32) = 7,
-  Long(i64) = 8,
-  SByte(i8) = 9,
-  Short(i16) = 10,
-  Float(f32) = 11,
-  String(String) = 12,
-  UInt(u32) = 13,
-  ULong(u64) = 14,
-  UShort(u16) = 15,
-  DateTime(i64) = 16,
-  StringArray(Vec<String>) = 17,
-  Guid(Uuid) = 18,
+  Boolean(bool),
+  Byte(u8),
+  ByteArray(Vec<u8>),
+  Char(char),
+  CharArray(Vec<char>),
+  Double(f64),
+  Int(i32),
+  Long(i64),
+  SByte(i8),
+  Short(i16),
+  Float(f32),
+  String(String),
+  UInt(u32),
+  ULong(u64),
+  UShort(u16),
+  DateTime(i64),
+  StringArray(Vec<String>),
+  Guid(Uuid),
   Unknown,
 }
 

@@ -17,6 +17,7 @@ use crate::decrypt::Packet;
 use std::collections::HashMap;
 use uuid::Uuid;
 
+/// Wrapper struct for plugin functions
 pub struct Plugin {
   name: String,
   handler: Box<dyn Fn(&mut NanoState, Packet, Side) -> ()>,
@@ -25,7 +26,7 @@ pub struct Plugin {
 }
 
 impl Plugin {
-  pub fn create(
+  pub fn new(
     name: impl Into<String>,
     handler: impl Fn(&mut NanoState, Packet, Side) -> () + 'static,
   ) -> Self {
@@ -58,27 +59,32 @@ pub struct PluginManager {
 
 impl PluginManager {
   pub fn new() -> Self {
-    let core_plugin = Plugin::create("Core Plugin", core::handle_packet);
-    let management_plugin = Plugin::create("Management Plugin", management::handle_packet);
-    let misc_plugin = Plugin::create("Misc Plugin", misc::handle_packet);
-    let multicore_plugin = Plugin::create("MultiCore", multi::handle_packet);
-    let swiss_plugin = Plugin::create("NanoCoreSwiss", swiss::handle_packet);
-    let nanobrowser_plugin = Plugin::create("NanoBrowser", browser::handle_packet);
-    let mut nanonana_plugin = Plugin::create("NanoNana", nana::handle_packet);
-    let nanostress_plugin = Plugin::create("NanoStress", stress::handle_packet);
-    let mut network_plugin = Plugin::create("Network Plugin", network::handle_packet);
-    let security_plugin = Plugin::create("Security Plugin", security::handle_packet);
+    // Define plugins
+
+    let core_plugin = Plugin::new("Core Plugin", core::handle_packet);
+    let management_plugin = Plugin::new("Management Plugin", management::handle_packet);
+    let misc_plugin = Plugin::new("Misc Plugin", misc::handle_packet);
+    let multicore_plugin = Plugin::new("MultiCore", multi::handle_packet);
+    let swiss_plugin = Plugin::new("NanoCoreSwiss", swiss::handle_packet);
+    let nanobrowser_plugin = Plugin::new("NanoBrowser", browser::handle_packet);
+    let mut nanonana_plugin = Plugin::new("NanoNana", nana::handle_packet);
+    let nanostress_plugin = Plugin::new("NanoStress", stress::handle_packet);
+    let mut network_plugin = Plugin::new("Network Plugin", network::handle_packet);
+    let security_plugin = Plugin::new("Security Plugin", security::handle_packet);
     let surveillanceex_plugin =
-      Plugin::create("SurveillanceEx Plugin", surveillance_ex::handle_packet);
-    let mut surveillance_plugin =
-      Plugin::create("Surveillance Plugin", surveillance::handle_packet);
-    let tools_plugin = Plugin::create("Tools Plugin", tools::handle_packet);
+      Plugin::new("SurveillanceEx Plugin", surveillance_ex::handle_packet);
+    let mut surveillance_plugin = Plugin::new("Surveillance Plugin", surveillance::handle_packet);
+    let tools_plugin = Plugin::new("Tools Plugin", tools::handle_packet);
+
+    // Add additional handlers
 
     nanonana_plugin.set_pipe_created_fn(nana::pipe_created);
     network_plugin.set_pipe_created_fn(network::pipe_created);
 
     network_plugin.set_connection_closed_fn(network::connection_closed);
     surveillance_plugin.set_connection_closed_fn(surveillance::connection_closed);
+
+    // Insert plugins
 
     let mut plugins: HashMap<u128, Plugin> = HashMap::new();
 
@@ -99,6 +105,7 @@ impl PluginManager {
     Self { plugins }
   }
 
+  /// Handle a NanoCore packet that contains plugin data
   pub fn handle_packet(&self, state: &mut NanoState, packet: Packet, side: Side) {
     let Some(uuid) = packet.plugin_guid else {return};
     let Some(plugin) = self.plugins.get(&uuid.as_u128()) else {return};
@@ -106,6 +113,7 @@ impl PluginManager {
     (plugin.handler)(state, packet, side);
   }
 
+  /// Handle a pipe creation event
   pub fn handle_pipe_created(&self, state: &mut NanoState, pipe_name: &str, pipe_id: &Uuid) {
     for (_, plugin) in self.plugins.iter() {
       let Some(ref handler) = plugin.pipe_created else {continue};
@@ -113,6 +121,7 @@ impl PluginManager {
     }
   }
 
+  /// Handle a connection closed event
   pub fn connection_closed(&self, state: &NanoState) {
     for (_, plugin) in self.plugins.iter() {
       let Some(ref handler) = plugin.connection_closed else {continue};
@@ -120,6 +129,7 @@ impl PluginManager {
     }
   }
 
+  /// Get the name of a plugin by its UUID
   pub fn plugin_name(&self, uuid: &Uuid) -> Option<&str> {
     self
       .plugins
